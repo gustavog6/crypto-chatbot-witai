@@ -1,0 +1,17 @@
+{
+  "name": "crypto-chatbot-witai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.1",
+    "express": "^4.18.2",
+    "mocha": "^10.2.0",
+    "node-fetch": "^2.6.7"
+  }
+}
