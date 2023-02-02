@@ -5,13 +5,21 @@ const express = require('express'),
   bodyParser = require('body-parser'),
   app = express().use(bodyParser.json()); // creates express http server
 
-const { queryGraph, queryCovidAPI } = require('../shared');
+const {
+  queryGraph,
+  getBasicInfo,
+  getFullInfo,
+  getOnlyPrice,
+  queryCovidAPI,
+} = require('../shared');
 
 const ACCESS_TOKEN =
-  'EAAhZBY3Gtk7sBAOv6zy0deInuoZAlZAySjou4FF8PHIzaQfXBYLoTMkZBLtvULB6cvsg7vBgG3GtZC59Fwrlw7AIc3ub4sZBPnJyOgMdb6zITSTmUmEwGqxZAyWx40TOZC7QubngUIUbEtxMe1Olxkb0rmH7RtL3T5NcjyQZArZAlqxF6SaOEUIx3l';
+  'EAAKZALbjqTtIBALWfAnYOTsDaqAkA9GDC0UIOk3Ts88d7N0TQTO9RmWdI9szsE2KSdjGZAIP5dnloXsmTbuaPPpn3w5vYK9xfPqEWYEZCnh2k1EbOTZB20UZCF0yhRkqALOuWTgqiWoF98ZAOOK5bAm7ylKDQ4XfQo2rU5EYw48ShTZCkZBrDXZCd';
 
-const DEFAULT_RESPONSE =
-  'Sorry, i dont understand :(. If you want to know the latest covid info, please type "total covid in your city". Example: total covid in Jakarta';
+const DEFAULT_RESPONSE = `Disculpa 😔 no te entendí.
+Si quieres saber sobre información de una moneda, escribe por favor 'información de MONEDA'.
+Ej: información del bitcoin`;
+// 'Sorry, i dont understand :(. If you want to know the latest covid info, please type "total covid in your city". Example: total covid in Jakarta';
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
@@ -55,111 +63,293 @@ app.post('/webhook', (req, res) => {
   }
 });
 
+// en esta función debo colocar todos los intents que están definidos en wit, para que vaya a su función maenejadora
 async function getMessageFromNlp(nlp) {
   if (nlp.intents.length == 0) {
     return DEFAULT_RESPONSE;
   }
+
   switch (nlp.intents[0].name) {
-    case 'covid_intents':
-      console.log('aquí');
-      return await getCovidResponse(nlp.entities);
+    case 'info_intent':
+      return await getInfoResponse(nlp.entities);
+    case 'price_intent':
+      return await getPriceResponse(nlp.entities);
     case 'sentiment_intent':
       return await getSentimentResponse(nlp.traits.sentiment);
+    case 'greetings_intent':
+      return `Hola 👋🏻 soy tu chatbot de confianza para precios del mercado de criptomonedas 😎\nPuedes pedirme información, información completa o solamente precio de la criptomoneda de tu preferencia.\nHay algo en lo que te pueda ayudar? 👀`;
     default:
       return DEFAULT_RESPONSE;
   }
 }
 
-async function getCovidResponse(entities) {
+// función manejadora para los intents relacionados con información
+async function getInfoResponse(entities) {
   console.log(entities);
-  var city = '';
-  var isCovid = false;
+
+  var coin = '';
+  var isInfo = false;
 
   // null checker
   if (
-    entities['wit$location:location'] == null ||
-    entities['covid_intents:covid_intents'] == null
+    entities['coin:coin'] == null &&
+    entities['basic_info:basic_info'] == null &&
+    entities['full_info:full_info'] == null
   ) {
     return DEFAULT_RESPONSE;
   }
 
-  entities['wit$location:location'].forEach(function (c) {
-    city = c.body;
-    console.log(`Aquí city ${city}`);
-  });
-  entities['covid_intents:covid_intents'].forEach(function (c) {
-    if (c.value == 'covid') {
-      isCovid = true;
-      console.log('aquí covid');
-    }
-  });
+  if (entities['full_info:full_info'] == null) {
+    entities['coin:coin'].forEach(function (c) {
+      coin = c.body;
+    });
 
-  if (isCovid && city != '') {
-    var res = await getCases(city.toLowerCase()); // ERROR
-    console.log('pasó');
-    var totalCase = res[0];
-    var newCase = res[1];
-    var confirmCase = res[2];
-    return `We have new ${newCase} cases. Total covid cases in ${city} is ${totalCase} cases, ${confirmCase} confirmed, ${
-      totalCase - confirmCase
-    } deaths.\n
-    if you experience the following symptoms, your sense of taste disappears, difficulty breathing, high fever, dry cough, fatigue, immediately do further checks at the referral hospital and after doing the test, if positive it is recommended to do self-quarantine for 14 days at your home. \n\n the following article on how to self quarantine
-    good and true according to WHO (World Heart Organization) : https://www.who.int/indonesia/news/novel-coronavirus/new-infographics/self-quarantine
-    These are our referral hospitals in ${city}:\n
-    1. rumah sakit Umum Fatmawati (https://goo.gl/maps/GV6fZRxhEgg2PPjK7)\n
-    2. rumah sakit Jakarta Medical Centre (https://goo.gl/maps/oPnpyw2edFJcg3ha7)\n
-    3. rumah sakit Umum Andhika (https://g.page/rsuandhika?share)`;
-  } else if (isCovid) {
-    return 'Sorry, Cocid wants to know what area is Covid? for example, you can retype the number of covid in your city';
+    entities['basic_info:basic_info'].forEach(function (c) {
+      if (
+        c.value == 'info' ||
+        c.value == 'información' ||
+        c.value == 'informacion'
+      ) {
+        isInfo = true;
+      }
+    });
+
+    if (isInfo && coin != '') {
+      var res = await getCases(coin.toLowerCase(), 'basic_info'); // ERROR
+      var current_price = res[0];
+      var high_24h = res[1];
+      var low_24h = res[2];
+      return `${coin.toLocaleUpperCase()}
+      💵Precio: ${current_price} 
+      📈Max 24h: ${high_24h} 
+      📉Low 24h: ${low_24h} 
+      \nCuál es tu impresión? 👀`;
+    } else if (isInfo) {
+      return 'Caray, parece que a alguien se le olvidó escribir la criptomoneda? vuelve a intentarlo con la criptomoneda que te interesa conocer la información';
+    }
+  }
+
+  if (entities['basic_info:basic_info'] == null) {
+    entities['coin:coin'].forEach(function (c) {
+      coin = c.body;
+    });
+
+    entities['full_info:full_info'].forEach(function (c) {
+      if (
+        c.value == 'información detallada' ||
+        c.value == 'informacion detallada' ||
+        c.value == 'información completa' ||
+        c.value == 'informacion completa' ||
+        c.value == 'info detallada' ||
+        c.value == 'info completa'
+      ) {
+        isInfo = true;
+      }
+    });
+
+    if (isInfo && coin != '') {
+      var res = await getCases(coin.toLowerCase(), 'full_info'); // ERROR
+      var current_price = res[0];
+      var high_24h = res[1];
+      var low_24h = res[2];
+      var market_cap = res[3];
+      var market_cap_rank = res[4];
+      var price_change_24h = res[5];
+      var price_change_percentage_24h = res[6];
+      var market_cap_change_percentage_24h = res[7];
+      var circulating_supply = res[8];
+      var total_supply = res[9];
+      return `${coin.toLocaleUpperCase()} - Información completa
+      💵Precio: ${current_price} 
+      📈Max 24h: ${high_24h} 
+      📉Low 24h: ${low_24h}
+      💰Market Cap: ${market_cap}
+      🏆Market Cap Rank: ${market_cap_rank}
+      📊Price Change: ${price_change_24h}
+      💸Price Change %: ${price_change_percentage_24h}
+      🪙Market Cap Change %: ${market_cap_change_percentage_24h}
+      🔄️Circulante: ${circulating_supply}
+      📌Suministro total: ${total_supply}
+      \nCuál es tu impresión? 👀`;
+    } else if (isInfo) {
+      return 'Caray, parece que a alguien se le olvidó escribir la criptomoneda? vuelve a intentarlo con la criptomoneda que te interesa conocer la información';
+    }
   }
 
   return DEFAULT_RESPONSE;
 }
 
-// function to hit API for get total cases and confirm cases
-async function getCases(city) {
-  // initial number with random
-  var totalCase = 0;
-  var newCase = 0;
-  var confirmCase = 0;
-  // var totalCase = getRandomNumber(1, 100);
-  // var newCase = getRandomNumber(1, 10);
-  // var confirmCase = getRandomNumber(1, totalCase);
+// función manejadora para la entitie only_price
+async function getPriceResponse(entities) {
+  console.log(entities);
 
-  await queryCovidAPI(city).then((res) => {
-    // undefined checker
-    if (res == undefined || res.length != 3) {
-      return [totalCase, newCase, confirmCase];
-    }
-    // assign when has the data
-    if (res[0] > 0) {
-      totalCase = res[0];
-    }
-    if (res[1] > 0) {
-      newCase = res[1];
-    }
-    if (res[2] > 0) {
-      confirmCase = res[2];
+  var coin = '';
+  var isPrice = false;
+
+  // null checker
+  if (
+    entities['coin:coin'] == null ||
+    entities['only_price:only_price'] == null
+  ) {
+    return DEFAULT_RESPONSE;
+  }
+
+  entities['coin:coin'].forEach(function (c) {
+    coin = c.body;
+  });
+
+  entities['only_price:only_price'].forEach(function (c) {
+    if (c.value == 'cuánto' || c.value == 'precio') {
+      isPrice = true;
     }
   });
-  return [totalCase, newCase, confirmCase];
+
+  if (isPrice && coin != '') {
+    var res = await getCases(coin.toLowerCase(), 'only_price'); // ERROR
+    var current_price = res[0];
+    return `El precio de ${coin.toLocaleUpperCase()} es: ${current_price} 💵
+      \nCuál es tu impresión? 👀`;
+  } else if (isPrice) {
+    return 'Caray, parece que a alguien se le olvidó escribir la criptomoneda? vuelve a intentarlo con la criptomoneda que te interesa conocer la información';
+  }
 }
 
-function getRandomNumber(start, end) {
-  return Math.floor(Math.random() * end - start) + start;
+// function to hit API for get total cases and confirm cases
+async function getCases(coin, entitie) {
+  switch (entitie) {
+    case 'basic_info':
+      // initial number with random - variables que vamos a usar para este caso
+      var current_price = 0;
+      var high_24h = 0;
+      var low_24h = 0;
+
+      await getBasicInfo(coin).then((res) => {
+        // undefined checker
+        if (res == undefined || res.length != 3) {
+          return [current_price, high_24h, low_24h];
+        }
+        // assign when has the data
+        if (res[0] > 0) {
+          current_price = res[0];
+        }
+        if (res[1] > 0) {
+          high_24h = res[1];
+        }
+        if (res[2] > 0) {
+          low_24h = res[2];
+        }
+      });
+      return [current_price, high_24h, low_24h];
+
+    case 'full_info':
+      // initial number with random - variables que vamos a usar para este caso
+      var current_price = 0;
+      var high_24h = 0;
+      var low_24h = 0;
+      var market_cap = 0;
+      var market_cap_rank = 0;
+      var price_change_24h = 0;
+      var price_change_percentage_24h = 0;
+      var market_cap_change_percentage_24h = 0;
+      var circulating_supply = 0;
+      var total_supply = 0;
+
+      await getFullInfo(coin).then((res) => {
+        // undefined checker
+        if (res == undefined || res.length != 10) {
+          return [
+            current_price,
+            high_24h,
+            low_24h,
+            market_cap,
+            market_cap_rank,
+            price_change_24h,
+            price_change_percentage_24h,
+            market_cap_change_percentage_24h,
+            circulating_supply,
+            total_supply,
+          ];
+        }
+        // assign when has the data
+        if (res[0] > 0) {
+          current_price = res[0];
+        }
+        if (res[1] > 0) {
+          high_24h = res[1];
+        }
+        if (res[2] > 0) {
+          low_24h = res[2];
+        }
+        if (res[3] > 0) {
+          market_cap = res[3];
+        }
+        if (res[4] > 0) {
+          market_cap_rank = res[4];
+        }
+        if (res[5] > 0) {
+          price_change_24h = res[5];
+        }
+        if (res[6] > 0) {
+          price_change_percentage_24h = res[6];
+        }
+        if (res[7] > 0) {
+          market_cap_change_percentage_24h = res[7];
+        }
+        if (res[8] > 0) {
+          circulating_supply = res[8];
+        }
+        if (res[9] > 0) {
+          total_supply = res[9];
+        }
+      });
+      return [
+        current_price,
+        high_24h,
+        low_24h,
+        market_cap,
+        market_cap_rank,
+        price_change_24h,
+        price_change_percentage_24h,
+        market_cap_change_percentage_24h,
+        circulating_supply,
+        total_supply,
+      ];
+    case 'only_price':
+      // initial number with random - variables que vamos a usar para este caso
+      var current_price = 0;
+
+      await getOnlyPrice(coin).then((res) => {
+        // undefined checker
+        if (res == undefined || res.length != 1) {
+          return [current_price];
+        }
+        // assign when has the data
+        if (res[0] > 0) {
+          current_price = res[0];
+        }
+      });
+      return [current_price];
+
+    default:
+      break;
+  }
 }
+
+// function getRandomNumber(start, end) {
+//   return Math.floor(Math.random() * end - start) + start;
+// }
 
 function getSentimentResponse(sentiment) {
   if (sentiment === undefined) {
-    return 'Is there anything that I can help? 👀';
+    return 'Hola! Hay algo en lo que te pueda ayudar? 👀';
   }
 
   console.log(sentiment[0].value);
   if (sentiment[0].value === 'positive') {
-    return 'Great !! keep physical distancing and wear a mask !! :D ';
+    return 'Grandioso, espero que sea ventajoso para tí! 🤙🏻';
   }
 
-  return 'Yes, i know its a bit sad :( I know its hard, but keep physical distancing <3 ';
+  return 'Vaya 😔 aunque ya sabes lo que dicen: nunca vendas en rojo.';
 }
 
 // Adds support for GET requests to our webhook
