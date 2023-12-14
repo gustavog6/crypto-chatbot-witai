@@ -14,12 +14,11 @@ const {
 } = require('../shared');
 
 const ACCESS_TOKEN =
-  'EAAKZALbjqTtIBALWfAnYOTsDaqAkA9GDC0UIOk3Ts88d7N0TQTO9RmWdI9szsE2KSdjGZAIP5dnloXsmTbuaPPpn3w5vYK9xfPqEWYEZCnh2k1EbOTZB20UZCF0yhRkqALOuWTgqiWoF98ZAOOK5bAm7ylKDQ4XfQo2rU5EYw48ShTZCkZBrDXZCd';
+  'EAAKZALbjqTtIBO2gJhGhd68yciQ2yZAdZAYxfS4gkgoFPBe1MFcM3hFqw6kZACshzkRbKmQPRirM3KiTZCTJRnLDR9Ml2cu7J1JfzgbzGfZBMa4S9K5Gxm9FouPVbBfdkKY1xmXRSxzxq67L6Q4pOkzEYNaDsXZCvB9NCUzquWUkKduZAtCUbZA4hlLzQjCrtjDPa';
 
 const DEFAULT_RESPONSE = `Disculpa 😔 no te entendí.
 Si quieres saber sobre información de una moneda, escribe por favor 'información de MONEDA'.
 Ej: información del bitcoin`;
-// 'Sorry, i dont understand :(. If you want to know the latest covid info, please type "total covid in your city". Example: total covid in Jakarta';
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
@@ -333,6 +332,21 @@ async function getCases(coin, entitie) {
     default:
       break;
   }
+}
+
+function getEntitiesValue() {
+  const Wit = require('node-wit').Wit;
+  const client = new Wit({ accessToken: 'YOUR_ACCESS_TOKEN' }); // Obtenga todas las entidades
+  client.entities.list().then((entities) => {
+    // Para cada entidad, obtenga los valores posibles
+    entities.forEach((entity) => {
+      client.entities.getValues(entity.name).then((values) => {
+        console.log(
+          `Los valores posibles para la entidad ${entity.name} son:, ${values}`
+        );
+      });
+    });
+  });
 }
 
 // function getRandomNumber(start, end) {
