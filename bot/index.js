@@ -14,7 +14,7 @@ const {
 } = require('../shared');
 
 const ACCESS_TOKEN =
-  'EAAKZALbjqTtIBO2gJhGhd68yciQ2yZAdZAYxfS4gkgoFPBe1MFcM3hFqw6kZACshzkRbKmQPRirM3KiTZCTJRnLDR9Ml2cu7J1JfzgbzGfZBMa4S9K5Gxm9FouPVbBfdkKY1xmXRSxzxq67L6Q4pOkzEYNaDsXZCvB9NCUzquWUkKduZAtCUbZA4hlLzQjCrtjDPa';
+  'EAAKZALbjqTtIBOypnVTrP4SOb55SVexC51J2FSyZA1II3VwCtY1LNwQRCNHxnwZCxZAe3q2azHK7WP25MtJUIsMEBDt3BSgFqmp1eiaFRKTGgl4lZBF1HEueVNFxVT97GZCfi4oGMZC8uA7zPwFEokxhIf2fqyEISKRnZC3pJbZCq6Dka5jfk8wmzXPXCvYBJlfVv';
 
 const DEFAULT_RESPONSE = `Disculpa 😔 no te entendí.
 Si quieres saber sobre información de una moneda, escribe por favor 'información de MONEDA'.
