@@ -64,7 +64,9 @@ app.post('/webhook', (req, res) => {
 
 // en esta función debo colocar todos los intents que están definidos en wit, para que vaya a su función maenejadora
 async function getMessageFromNlp(nlp) {
+  console.log(nlp);
   if (nlp.intents.length == 0) {
+    console.log(nlp.intents[0].name);
     return DEFAULT_RESPONSE;
   }
 
@@ -194,11 +196,14 @@ async function getPriceResponse(entities) {
   }
 
   entities['coin:coin'].forEach(function (c) {
+    /* esto se me ocurre que en lugar de colcoar cada carrera como una entidad sea una entidad llamada carrera y obtengo su body y de ahí 
+      utilizo ese valor para hacer el query ya sea haciendo previamente un query o con el puro string » no usarlo para no perder consistencia
+    */
     coin = c.body;
   });
 
   entities['only_price:only_price'].forEach(function (c) {
-    if (c.value == 'cuánto' || c.value == 'precio') {
+    if (c.value == 'cuánto' || c.value == 'precio') { // esta validación aquí está demás
       isPrice = true;
     }
   });

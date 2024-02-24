@@ -1,0 +1,68 @@
+Modelo con 4 tablas en la base de datos
+1. intenciones
+2. entidades
+3. procesos
+4. respuestas
+
+IMPORTANTE: Al momento de hacer el query para obtener la respuesta se hace siempre a la tabla de Respuestas
+
+#####################################################################################################################
+
+En la tabla de procesos un registro se verá así
+{
+  proceso: 'pasantía',
+  carrera: ingeniería informática,
+  documentos: [enlace1,  enlace2, enlace3, enlace4],
+  autoridades: 'nombre de profesor',
+  paso_a_paso: '1,2,3,4,5',
+  regalemnto: 'dioadoandsds',
+  requisitos: '1,2,3,4,5,6,7,8'
+}
+
+#####################################################################################################################
+
+pregunta: cómo hago pasantías de ingeniería en informática?
+
+intencion indentificada: pasantía
+entidades identificadas: carrera (ingeniería en informática), paso a paso(cómo hago)
+
+IMPORTANTE_1: una opción es que en en el backend, los endpoints reciban los strings como nombres, allí en esa capa se hagan las consultas por cada entidad identificada
+posteriormente se obtengan los _ids de cada una de las entidades y finalmente se haga la consulta con el body construido
+
+IMPORTANTE_2: otra opción es que previamente antes de golpear al endpoint de la tabla de respuestas, se haga un query por cada una de las entidades a la tabla entidades
+buscando (en este caso) por nombre, una vez obtenidos copiamos su id y armamos el body
+
+query1 { nombre: 'ingeniería informática' }
+query2 { nombre: 'paso a paso' }
+
+IMPORTANTE_3: otra opción en lugar de hacer querys por cada entidad encontrada, es que los nombres de cada entidad en wit.ai tenga su _id correspondiente en la base de datos.
+Es decir, la entidad de la base de datos en wit.ai puediera tener el siguiente nombre ingenieria_informatica_3209323j22n13321 y una vez con ese nombre se extraé y se guarda únicamente el id y con eso fabricamos el body para a consulta
+
+POST .../api/respuestas
+
+body: {
+  intenciones: pasantia,      || '75746h543242g654'
+  entidaes: [
+    'ingenieria informática', || '3209323j22n13321'
+    'paso a paso'             || '65454j654jkjjk43'
+  ]
+}
+
+la respuesta que se espera obtener en la capa de comunicación entre el chatbot y el backend es esta:
+
+res: {
+  # todas las propiedades son referencias a sus tablas respectivas. Pero cuando se consulten se necesita obtener los valores 
+  # inteciones: pasantía,
+  # entidades: ['ingenieria informática', 'paso_a_paso'],
+  respuesta: {
+    proceso: 'pasantía',
+    carrera: ingeniería informática,
+    documentos: [enlace1,  enlace2, enlace3, enlace4],
+    autoridades: 'nombre de profesor',
+    paso_a_paso: '1,2,3,4,5',
+    regalemnto: 'dioadoandsds',
+    requisitos: '1,2,3,4,5,6,7,8'
+  }
+}
+
+posteriormente en elijo la propiedad de la respuesta que esté necesitando res.respuesta.paso_a_paso y la mando al chatbot para que el usuario vea la información
